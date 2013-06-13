@@ -11,7 +11,8 @@ my $ime = new IMEJP(trie_file => $conf->{trie_file},
 my $input;
 while ($input = <STDIN>) {
     chomp($input);
-    print STDERR $ime->convertForLinkCount(input=>$input),"\n";
+    my ($cand,$score) = $ime->convertForLinkCount(input=>$input);
+    print STDERR $cand->[0],"(",$score->[0],")\n";
 }
 
 my $conncount = $ime->{trans_count};

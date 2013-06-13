@@ -21,8 +21,8 @@ sub new {
     $self->{trie}->load($args{trie_file});
     $self->{dbh} = DBI->connect("dbi:SQLite:dbname=$args{database_file}") or die "Can't open database $!";
     $self->{last_id} = 0;
-    $self->{debug} = $args{debug};
-    $self->{debug} = 0 if (!defined($self->{debug}));
+    $self->{bestk} = $args{bestk} // 1;
+    $self->{debug} = $args{debug} // 0;
     return $self;
 }
 
@@ -48,10 +48,16 @@ sub convert {
     my ($node, $link, $state) = ($self->{debug}) ? 
 	$self->createGraphDebug($input) : $self->createGraph($input);
     $self->{watch}->measure(id=>"find best path");
-    my $path = $self->findBestPath($node,$link,$state);
+    my ($paths, $scores) = ($self->{bestk} == 1) ? 
+	$self->findBestPath($node, $link, $state) : 
+	$self->findKthBestPath($node,$link,$state,$self->{bestk});
     $self->{watch}->stop;
     $self->{watch}->show if ($self->{debug});
-    return $self->getConvertedString($path);
+    my @candidates;
+    for my $path (@{$paths}) {
+	push(@candidates,$self->getConvertedString($path));
+    }
+    return \@candidates,$scores;
 }
 
 sub convertForLinkCount {
@@ -60,8 +66,8 @@ sub convertForLinkCount {
     utf8::decode($input);
     $self->{last_id} = $self->getMaxUnivID();
     my ($node, $link, $state) = $self->createGraphCount($input);
-    my $path = $self->findBestPath($node,$link,$state);
-    return $self->getConvertedString($path);
+    my ($paths,$scores) = $self->findBestPath($node,$link,$state);
+    return [$self->getConvertedString($paths->[0])], $scores;
 }
 
 sub getMaxUnivID {
@@ -78,14 +84,19 @@ sub generateNewChunk {
     my ($self, $surface) = @_;
     $self->{last_id}++;
     utf8::encode($surface);
-    my $ch = $self->getChunk($self->{last_id},2964,2964,0,$surface);
+    my $ch = $self->getChunk($self->{last_id},2964,2964,0,0,$surface);
     print STDERR "new word: $surface\n" if ($self->{debug});
     return $ch;
 }
 
 sub getChunk {
-    my ($self, $id, $left_id, $right_id, $score, $kanji) = @_;
-    return {id => $id, left_id => $left_id, right_id => $right_id, score => $score, kanji => $kanji};
+    my ($self, $id, $left_id, $right_id, $score, $kanji_id, $kanji) = @_;
+    return {id => $id, 
+	    left_id => $left_id, 
+	    right_id => $right_id, 
+	    score => $score, 
+	    kanji_id => $kanji_id, 
+	    kanji => $kanji};
 }
 
 sub createGraph {
@@ -117,8 +128,8 @@ sub createNode {
     my $agent = new marisa::Agent;
     my @state = ({0=>1},{});
     my %node; # $node{NODE_ID} = CHUNK_INFORMATION, NODE_ID := STATE_INDEX.CHUNK_ID
-    my $sth_w = $self->{dbh}->prepare("select id,left_id,right_id,score,kanji from word where trie_id = ? limit 1000");
-    $self->{chunk}{0} = $self->getChunk(0, 0, 0, 0, '');
+    my $sth_w = $self->{dbh}->prepare("select id,left_id,right_id,score,kanji_id,kanji from word where trie_id = ? limit 1000");
+    $self->{chunk}{0} = $self->getChunk(0, 0, 0, 0, 0, '');
     $node{"0.$bos"} = $self->{chunk}{$bos};
     for (my $i = 1; $i < length($q)+1; $i++) {
 	next if (!defined($state[$i]));
@@ -221,9 +232,86 @@ sub findBestPath {
 	    $score{$target_id} = $s_min + $node->{$target_id}{score};
 	}
     }
+    my $path = $self->decodePath(\%bp,$#{$state},$node);
+    return [$path], [$score{"$#{$state}.$eos"}];
+}
+
+sub findKthBestPath {
+    my ($self, $node, $link, $state, $k) = @_;
+    my %dist;
+    my %visited;
+    my %queue;
+    my %link_forward;
+    for my $id (keys %{$node}) {
+	$dist{$id} = 1000000000;
+	$visited{$id} = 0;
+    }
+    $dist{"$#$state.$eos"} = 0;
+    $queue{"$#$state.$eos"} = 0;
+    while (keys %queue) {
+	my @keys = sort{$queue{$a} <=> $queue{$b}} keys %queue;
+	my $target_id = shift(@keys);
+	my $score_so_far = $queue{$target_id};
+	delete($queue{$target_id});
+	next if ($visited{$target_id});
+	$visited{$target_id} = 1;
+	for my $source_id (keys %{$link->{$target_id}}) {
+	    my $t_score = $link->{$target_id}{$source_id};
+	    $link_forward{$source_id}{$target_id} = $t_score;
+	    my $e_score = $node->{$source_id}{score};
+	    next if ($visited{$source_id});
+	    if ($dist{$source_id} > $score_so_far + $t_score + $e_score) {
+		$dist{$source_id} = $score_so_far + $t_score + $e_score;
+		$queue{$source_id} = $dist{$source_id};
+	    }
+	}
+    }
+    my $count = 0; #paths
+    my %queue_r;
+    my @path_k;
+    my @score_k;
+    my %kpaths;
+    $queue_r{"0.$bos"} = {distance => $dist{"0.$bos"}, path => {}};
+    while (keys %queue_r) {
+	my @keys = sort{$queue_r{$a}{distance} <=> $queue_r{$b}{distance}} keys %queue_r;
+	my $source_id = shift(@keys);
+	my $elm = $queue_r{$source_id};
+	delete($queue_r{$source_id});
+	my $val_sofar = $elm->{distance} - $dist{$source_id};
+	my $path_sofar = $elm->{path};
+	if ($source_id eq "$#$state.$eos") {
+	    my $kpath = $self->decodeKanjiPath($path_sofar,$#{$state},$node);
+	    if (!$kpaths{$kpath}) {
+		$kpaths{$kpath} = 1;
+		push(@path_k, $path_sofar);
+		push(@score_k, $val_sofar);
+		$count++;
+		last if ($count > $k);
+	    }
+	    else {
+		next;
+	    }
+	}
+	for my $target_id (keys %{$link_forward{$source_id}}) {
+	    my $trans_s = $link->{$target_id}{$source_id};
+	    my $next_val = $val_sofar + $trans_s + $dist{$target_id} + $node->{$source_id}{score};
+	    my %next_path = %{$path_sofar};
+	    $next_path{$target_id} = $source_id;
+	    $queue_r{$target_id} = {distance => $next_val, path => \%next_path};
+	}
+    }
+    my @paths;
+    for my $bp (@path_k) {
+	push(@paths, $self->decodePath($bp,$#{$state},$node));
+    }
+    return \@paths,\@score_k;
+}
+
+sub decodePath {
+    my ($self,$bp,$last_idx,$node) = @_;
+    my $target_id = "$last_idx.$eos";
     my @path = ($eos);
-    my $target_id = "$#{$state}.$eos";
-    while (my $id = $bp{$target_id}) {
+    while (my $id = $bp->{$target_id}) {
 	push(@path,$node->{$id}{id});
 	$target_id = $id;
     }
@@ -231,10 +319,15 @@ sub findBestPath {
     return \@path;
 }
 
-sub findKthBestPath {
-    my ($self, $node, $link, $state, $k) = @_;
-    my %dist;
-    
+sub decodeKanjiPath {
+    my ($self,$bp,$last_idx,$node) = @_;
+    my $target_id = "$last_idx.$eos";
+    my $kpath = "".$eos." ";
+    while (my $id = $bp->{$target_id}) {
+        $kpath .= $node->{$id}{kanji_id}." ";
+        $target_id = $id;
+    }
+    return $kpath;
 }
 
 sub getConvertedString {

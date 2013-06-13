@@ -18,25 +18,25 @@ Configuration
 ------------------------
 Configuration written in conf.perl
 
-* dictionary_dir
+* dictionary_dir:
 path to directory containing dictionary0[0-9].txt
-* additional_dictionary (optional)
+* additional_dictionary (optional):
 path to additional dictionary ("additional.txt")
-* connection_filename
+* connection_filename:
 default: connection.txt (in Mozc dictionary)
-* sqlite
+* sqlite:
 sqlite command name
-* database_file
+* database_file:
 file name to save sqlite database
-* trie_file
+* trie_file:
 file name to save trie
-* temporary_file
+* temporary_file:
 temporary file name
-* temporary_trie_file
+* temporary_trie_file:
 temporary file name 2
-* connection_cache_file
+* connection_cache_file:
 cache file for connection data
-* ime_debug
+* ime_debug:
 if 1 is set, debug information can be seen
-* bestk
+* bestk:
 if 1 is set, it uses viterbi algorithm. otherwise, it uses k-th nearest path algorithm.

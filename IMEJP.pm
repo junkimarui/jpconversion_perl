@@ -286,7 +286,7 @@ sub findKthBestPath {
 		push(@path_k, $path_sofar);
 		push(@score_k, $val_sofar);
 		$count++;
-		last if ($count > $k);
+		last if ($count == $k);
 	    }
 	    else {
 		next;

@@ -8,6 +8,9 @@
     temporary_file => 'temp.txt',
     temporary_trie_file => 'temp.dat',
     connection_cache_file => 'conncache.txt',
+    romaji_file => 'romaji.txt',
+    romaji_trie => 'romaji.dat',
+    from_romaji => 0,
     ime_debug => 1,
     bestk => 10
 }

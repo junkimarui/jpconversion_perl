@@ -40,3 +40,6 @@ cache file for connection data
 if 1 is set, debug information can be seen
 * bestk:
 if 1 is set, it uses viterbi algorithm. otherwise, it uses k-th nearest path algorithm.
+* from_romaji:
+ if 1 is set, this program takes alphabet (Roma-ji) input. default escaping character is $.
+`sample input: korehanihongohenkantsu-rudesu.$Alphabet$moutsukotogadekimasu.`

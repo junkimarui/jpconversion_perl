@@ -9,6 +9,9 @@ How to use
 3. make cache (optional)
 `perl make_conncache.pl < sample.txt`
 
+4. make romaji table (optional)
+`perl make_romaji.pl`
+
 4. run converter
 `perl ime.pl`
 
@@ -43,3 +46,7 @@ if 1 is set, it uses viterbi algorithm. otherwise, it uses k-th nearest path alg
 * from_romaji:
  if 1 is set, this program takes alphabet (Roma-ji) input. default escaping character is $.
 `sample input: korehanihongohenkantsu-rudesu.$Alphabet$moutsukotogadekimasu.`
+* romaji_file:
+ romaji conversion table file (romaji.txt in the directory)
+* romaji_trie:
+ it saves trie for input alphabet (Roma-ji).

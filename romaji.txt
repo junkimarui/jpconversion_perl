@@ -55,6 +55,15 @@ tu	つ
 tsu	つ
 te	て
 to	と
+cha	ちゃ
+tya	ちゃ
+tyi	ちぃ
+chu	ちゅ
+tyu	ちゅ
+che	ちぇ
+tye	ちぇ
+tyo	ちょ
+cho	ちょ
 da	だ
 di	ぢ
 du	づ

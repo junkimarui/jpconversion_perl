@@ -13,6 +13,11 @@ gi	ぎ
 gu	ぐ
 ge	げ
 go	ご
+gwa	ぐぁ
+gwi	ぐぃ
+gwu	ぐぅ
+gwe	ぐぇ
+gwo	ぐぉ
 gya	ぎゃ
 gyi	ぎぃ
 gyu	ぎゅ
@@ -55,6 +60,8 @@ tu	つ
 tsu	つ
 te	て
 to	と
+thi	てぃ
+the	てぇ
 cha	ちゃ
 tya	ちゃ
 tyi	ちぃ
@@ -64,6 +71,11 @@ che	ちぇ
 tye	ちぇ
 tyo	ちょ
 cho	ちょ
+twa	とぁ
+twi	とぃ
+twu	とぅ
+twe	とぇ
+two	とぉ
 da	だ
 di	ぢ
 du	づ

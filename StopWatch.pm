@@ -42,7 +42,7 @@ sub stop {
 sub show {
     my ($self, %args) = @_;
     for (my $i = 0; $i < @{$self->{series}}; $i++) {
-	print $self->{ids}->[$i],":",$self->{series}->[$i],"\n";
+	print $self->{ids}->[$i],":",$self->{series}->[$i],"sec\n";
     }
 }
 

@@ -1,3 +1,12 @@
+Dependency
+======================
+You need marisa-trie perl binding.
+https://code.google.com/p/marisa-trie/
+
+And you also need mozc dictionary (dictionary_oss).
+After you downloaded it, you should specify the directory in `conf.perl`.
+https://github.com/niw/mozc/tree/master/src/data/dictionary_oss
+
 How to use
 ======================
 
